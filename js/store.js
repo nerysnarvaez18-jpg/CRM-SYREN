@@ -195,6 +195,7 @@ class Store {
             employee: this.currentUser.name,
             total: this.getCartTotal(),
             items: [...this.cart], // Copy cart
+            status: 'Abierta',
         };
 
         // Deduct inventory
@@ -213,6 +214,17 @@ class Store {
         this.save(); // Persist changes
         this.clearCart();
         return sale; // Return sale object for printing/receipt
+    }
+
+    updateSaleStatus(saleId, newStatus) {
+        const sale = this.state.sales.find(s => s.id === saleId);
+        if (sale) {
+            sale.status = newStatus;
+            this.save();
+            this.notify();
+            return true;
+        }
+        return false;
     }
 
     // --- Inventory Management ---

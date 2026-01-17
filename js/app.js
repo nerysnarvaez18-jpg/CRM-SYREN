@@ -55,6 +55,9 @@ function init() {
         // Master User Actions
         changeUserPin: changeUserPin,
 
+        // Order Management
+        updateOrderStatus: updateOrderStatus,
+
         // State
         adminTab: 'dashboard',
         activeCategory: 'all',
@@ -377,6 +380,11 @@ function changeUserPin(userId, userName) {
             alert('Error al actualizar el PIN. Permiso denegado.');
         }
     }
+}
+
+// Order Management
+function updateOrderStatus(saleId, newStatus) {
+    store.updateSaleStatus(saleId, newStatus);
 }
 
 // Printing Logic

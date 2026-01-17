@@ -232,6 +232,7 @@ window.views = {
                                     <th class="px-6 py-4">Hora</th>
                                     <th class="px-6 py-4">Empleado</th>
                                     <th class="px-6 py-4">Items</th>
+                                    <th class="px-6 py-4">Estado</th>
                                     <th class="px-6 py-4 text-right">Total</th>
                                 </tr>
                             </thead>
@@ -242,6 +243,18 @@ window.views = {
                                         <td class="px-6 py-4">${new Date(s.date).toLocaleTimeString()}</td>
                                         <td class="px-6 py-4 text-white">${s.employee}</td>
                                         <td class="px-6 py-4">${s.items.length} items</td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-2 py-1 rounded-lg text-xs font-bold ${s.status === 'Entregado' ? 'bg-green-500/20 text-green-500' : 'bg-orange-500/20 text-orange-500'}">
+                                                    ${s.status || 'Abierta'}
+                                                </span>
+                                                <button onclick="window.posApp.updateOrderStatus(${s.id}, '${s.status === 'Entregado' ? 'Abierta' : 'Entregado'}')" 
+                                                    class="p-1 hover:bg-gray-700 rounded transition-colors" 
+                                                    title="${s.status === 'Entregado' ? 'Marcar como Abierta' : 'Marcar como Entregado'}">
+                                                    <i data-lucide="${s.status === 'Entregado' ? 'refresh-ccw' : 'check-circle'}" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td class="px-6 py-4 text-right font-bold text-white">$${s.total.toFixed(2)}</td>
                                     </tr>
                                 `).join('')}
