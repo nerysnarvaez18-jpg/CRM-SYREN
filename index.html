@@ -40,6 +40,9 @@
     <!-- Vector Icons (Lucide) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- Custom Styles -->
     <style>
         /* Glassmorphism Utilities */
@@ -148,6 +151,10 @@
 
     <!-- 1. STORE -->
     <script>
+        const SUPABASE_URL = 'https://renjxvjkhfuroaqlhllk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlbmp4dmpraGZ1cm9hcWxobGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3MDUwNjAsImV4cCI6MjA4NDI4MTA2MH0.I4M15Cp0JsArYs60tKvyreNgg2d0ZD07GDgRsxui5zo';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         const STORAGE_KEY = 'pos_data_v1';
 
         const INITIAL_DATA = {
@@ -220,13 +227,53 @@
 
         class Store {
             constructor() {
-                this.state = this.load();
+                this.state = this.loadLocal(); // Load local first as fallback
                 this.cart = [];
                 this.currentUser = null;
                 this.listeners = [];
+                this.isSyncing = false;
+
+                // Initialize Cloud Sync
+                this.initCloud();
             }
 
-            load() {
+            async initCloud() {
+                // Fetch latest state from Cloud
+                const { data, error } = await supabaseClient
+                    .from('app_state')
+                    .select('data')
+                    .eq('id', 1)
+                    .single();
+
+                if (data && data.data && Object.keys(data.data).length > 0) {
+                    console.log("Cloud Data loaded");
+                    this.state = { ...INITIAL_DATA, ...data.data };
+                    this.notify();
+                } else if (!error) {
+                    // If cloud is empty, push local data for the first time
+                    console.log("Cloud empty, pushing local data");
+                    this.pushToCloud();
+                }
+
+                // Subscribe to Realtime changes
+                supabaseClient
+                    .channel('schema-db-changes')
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'app_state',
+                        filter: 'id=eq.1'
+                    }, payload => {
+                        if (!this.isSyncing) {
+                            console.log("Remote update received");
+                            this.state = { ...this.state, ...payload.new.data };
+                            this.notify();
+                        }
+                    })
+                    .subscribe();
+            }
+
+            loadLocal() {
                 const stored = localStorage.getItem(STORAGE_KEY);
                 let state;
                 try {
@@ -258,7 +305,21 @@
             save() {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
                 this.updateDocumentTitle();
+                this.pushToCloud();
                 this.notify();
+            }
+
+            async pushToCloud() {
+                this.isSyncing = true;
+                const { error } = await supabaseClient
+                    .from('app_state')
+                    .update({ data: this.state })
+                    .eq('id', 1);
+
+                if (error) console.error("Cloud Save Error:", error);
+
+                // Release lock after a short delay to avoid echo
+                setTimeout(() => { this.isSyncing = false; }, 1000);
             }
 
             updateDocumentTitle() {
