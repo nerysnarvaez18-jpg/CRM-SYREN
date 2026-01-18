@@ -58,6 +58,10 @@ function init() {
         // Order Management
         updateOrderStatus: updateOrderStatus,
 
+        // Backup & Recovery
+        exportBackup: exportBackup,
+        importBackup: importBackup,
+
         // State
         adminTab: 'dashboard',
         activeCategory: 'all',
@@ -454,6 +458,41 @@ function printTicket(sale) {
         // But since it's position absolute 0,0, let's hide it again after a delay.
         // Actually, better to leave it controlled by CSS.
     }, 500);
+}
+
+// Backup & Recovery Functions
+function exportBackup() {
+    if (confirm('¿Descargar respaldo completo de todos los datos?\n\nEsto incluye: productos, ventas, inventario, usuarios y configuración.')) {
+        store.exportData();
+        alert('✅ Respaldo descargado exitosamente.\n\nGuarda este archivo en un lugar seguro. Úsalo para restaurar datos si es necesario.');
+    }
+}
+
+function importBackup(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+
+    if (!confirm(`⚠️ ADVERTENCIA: Restaurar Respaldo\n\n` +
+        `Archivo: ${file.name}\n\n` +
+        `Esto REEMPLAZARÁ todos los datos actuales con los datos del archivo.\n\n` +
+        `¿Estás seguro de continuar?`)) {
+        input.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const jsonString = e.target.result;
+            store.importData(jsonString);
+        } catch (error) {
+            alert('❌ Error al leer el archivo.\n\nAsegúrate de que sea un archivo JSON válido.');
+            console.error('Import error:', error);
+        }
+        input.value = ''; // Reset input
+    };
+    reader.readAsText(file);
 }
 
 // Start

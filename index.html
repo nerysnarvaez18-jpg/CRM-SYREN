@@ -227,6 +227,12 @@
 
         class Store {
             constructor() {
+                // Detect environment: Use ID 1 for production (GitHub), ID 99 for local/dev
+                this.isProduction = window.location.hostname.includes('github.io');
+                this.STATE_ID = this.isProduction ? 1 : 99;
+
+                console.log(`Entorno: ${this.isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'} (ID: ${this.STATE_ID})`);
+
                 this.state = this.loadLocal(); // Load local first as fallback
                 this.cart = [];
                 this.currentUser = null;
@@ -242,16 +248,16 @@
                 const { data, error } = await supabaseClient
                     .from('app_state')
                     .select('data')
-                    .eq('id', 1)
+                    .eq('id', this.STATE_ID)
                     .single();
 
                 if (data && data.data && Object.keys(data.data).length > 0) {
-                    console.log("Cloud Data loaded");
+                    console.log("Cloud Data loaded from ID:", this.STATE_ID);
                     this.state = { ...INITIAL_DATA, ...data.data };
                     this.notify();
                 } else if (!error) {
                     // If cloud is empty, push local data for the first time
-                    console.log("Cloud empty, pushing local data");
+                    console.log("Cloud empty, pushing local data to ID:", this.STATE_ID);
                     this.pushToCloud();
                 }
 
@@ -262,7 +268,7 @@
                         event: 'UPDATE',
                         schema: 'public',
                         table: 'app_state',
-                        filter: 'id=eq.1'
+                        filter: `id=eq.${this.STATE_ID}`
                     }, payload => {
                         if (!this.isSyncing) {
                             console.log("Remote update received");
@@ -314,7 +320,7 @@
                 const { error } = await supabaseClient
                     .from('app_state')
                     .update({ data: this.state })
-                    .eq('id', 1);
+                    .eq('id', this.STATE_ID);
 
                 if (error) console.error("Cloud Save Error:", error);
 
@@ -686,6 +692,36 @@
                     user.pin = newPin;
                     this.save();
                     return true;
+                }
+                return false;
+            }
+
+            // --- Backup & Recovery ---
+            exportData() {
+                const dataStr = JSON.stringify(this.state, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `backup_syren_${new Date().toISOString().split('T')[0]}.json`;
+
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            }
+
+            importData(jsonString) {
+                try {
+                    const importedState = JSON.parse(jsonString);
+                    // Basic validation to ensure it has users and products
+                    if (importedState.users && importedState.products) {
+                        this.state = importedState;
+                        this.save();
+                        alert('Respaldo restaurado con éxito. El sistema se refrescará.');
+                        window.location.reload();
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("Import Error:", e);
+                    alert('Error al procesar el archivo de respaldo.');
                 }
                 return false;
             }
@@ -1208,23 +1244,40 @@
                                             placeholder="¡Gracias por preferirnos!\n¡Vuelva pronto!">${settings.receiptFooter || ''}</textarea>
                                     </div>
 
-                                    <div class="pt-4">
-                                        <button type="submit" 
-                                            class="w-full bg-orange-600 hover:bg-orange-500 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-900/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                                            <i data-lucide="save" class="w-6 h-6"></i> GUARDAR CONFIGURACIÓN
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
+                                    <div class="pt-4 flex gap-4">
+                                         <button type="submit" 
+                                             class="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-900/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                                             <i data-lucide="save" class="w-6 h-6"></i> GUARDAR CONFIGURACIÓN
+                                         </button>
+                                         <button type="button" onclick="window.posApp.handleExportData()"
+                                             class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-900/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                                             <i data-lucide="download" class="w-6 h-6"></i> DESCARGAR RESPALDO
+                                         </button>
+                                     </div>
+                                 </form>
+                                 
+                                 <div class="p-8 border-t border-gray-800 bg-gray-900/10">
+                                     <div class="flex flex-col gap-4">
+                                         <label class="block text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Restaurar Información</label>
+                                         <div class="flex gap-4">
+                                             <input type="file" id="import-file" class="hidden" accept=".json" onchange="window.posApp.handleImportData(this)">
+                                             <button onclick="document.getElementById('import-file').click()"
+                                                 class="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-2xl font-black text-sm border border-gray-700 transition-all flex items-center justify-center gap-3">
+                                                 <i data-lucide="upload" class="w-5 h-5 text-orange-500"></i> SUBIR ARCHIVO DE RESPALDO (.JSON)
+                                             </button>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
 
-                            <div class="glass-panel p-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 flex gap-4 items-start">
-                                <i data-lucide="info" class="w-6 h-6 text-blue-500 shrink-0 mt-1"></i>
-                                <div>
-                                    <h4 class="text-blue-500 font-bold mb-1">Nota de Impresión</h4>
-                                    <p class="text-gray-400 text-xs leading-relaxed">Estos cambios afectarán a todos los tickets impresos a partir de ahora, tanto en el POS como en los reportes del sistema.</p>
-                                </div>
-                            </div>
-                        </div>
+                             <div class="glass-panel p-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 flex gap-4 items-start">
+                                 <i data-lucide="info" class="w-6 h-6 text-blue-500 shrink-0 mt-1"></i>
+                                 <div>
+                                     <h4 class="text-blue-500 font-bold mb-1">Nota de Seguridad</h4>
+                                     <p class="text-gray-400 text-xs leading-relaxed">Te recomendamos descargar un respaldo cada vez que realices cambios masivos en tus productos o configuración. Los respaldos son compatibles entre la versión de PC y la versión Web.</p>
+                                 </div>
+                             </div>
+                         </div>
                     `;
                 }
 
@@ -1653,6 +1706,26 @@
                     if (store.updateUserPin(userId, newPin)) {
                         alert("PIN actualizado correctamente.");
                     }
+                }
+            },
+
+            // Backup Handlers
+            handleExportData: function () {
+                if (confirm('¿Deseas descargar un archivo con toda la información (Ventas, Productos, Inventario)?')) {
+                    store.exportData();
+                }
+            },
+
+            handleImportData: function (input) {
+                if (input.files && input.files[0]) {
+                    if (confirm('ATENCIÓN: Esto reemplazará TODA la información actual por la del archivo. ¿Deseas continuar?')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            store.importData(e.target.result);
+                        };
+                        reader.readAsText(input.files[0]);
+                    }
+                    input.value = ''; // Reset input
                 }
             },
 
