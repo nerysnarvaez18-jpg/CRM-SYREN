@@ -299,7 +299,7 @@ window.views = {
                     }
                                         </td>
                                         <td class="px-6 py-4 text-right">
-                                            ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
+                                            ${store.currentUser.id === 0 || store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                                                 <button onclick="window.posApp.openAdjustmentModal('${item.id}')" class="text-orange-500 hover:text-white hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-orange-500/30">
                                                     <i data-lucide="settings-2" class="w-3 h-3 inline mr-1"></i>Ajustar
                                                 </button>
@@ -441,7 +441,7 @@ window.views = {
                                 <button onclick="window.posApp.openProductEditor('${p.id}')" class="p-2 bg-gray-800 rounded-lg text-gray-400 hover:text-white" title="Editar">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
-                                ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
+                                ${store.currentUser.id === 0 || store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                                     <button onclick="window.posApp.deleteProduct('${p.id}')" class="p-2 bg-red-500/10 rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-colors" title="Eliminar">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
@@ -538,20 +538,18 @@ window.views = {
 
                         <div class="flex justify-between mt-8">
                             <div>
-                                ${isEdit && (store.currentUser.id === 2 || store.currentUser.id === 3) ? `
+                                ${isEdit && (store.currentUser.id === 0 || store.currentUser.id === 2 || store.currentUser.id === 3) ? `
                                     <button type="button" onclick="window.posApp.deleteProduct('${p.id}')" class="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg font-bold border border-red-500/20 transition-colors">
                                         <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i> Eliminar
                                     </button>
                                 ` : ''}
                             </div>
-                            <div class="flex gap-3">
-                                <button type="button" onclick="document.getElementById('editor-modal').remove()" class="px-4 py-2 text-gray-400 hover:text-white">Cancelar</button>
-                                <button type="submit" class="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold shadow-lg shadow-orange-900/20">Guardar</button>
+                                <!-- Button moved to bottom -->
                             </div>
                         </div>
                         
                         ${/* Ingredients Section - Manager Only */ ''}
-                        ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
+                        ${store.currentUser.id === 0 || store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                             <div class="border-t border-gray-800 pt-6 mt-6">
                                 <h3 class="text-white font-bold mb-4 flex items-center gap-2">
                                     <i data-lucide="chef-hat" class="w-4 h-4 text-orange-500"></i> Receta (Ingredientes)
@@ -562,7 +560,7 @@ window.views = {
                                      ${(p.recipe || []).map(ing => {
             const invItem = store.state.inventory.find(i => i.id === ing.id);
             return `
-                                            <div class="flex gap-2 items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
+                                            <div class="recipe-row flex gap-2 items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50" data-id="${ing.id}">
                                                 <div class="flex-1 min-w-0">
                                                     <span class="text-gray-300 text-sm font-medium block truncate">${invItem ? invItem.name : ing.id}</span>
                                                     <span class="text-xs text-gray-500">Id: ${ing.id}</span>
@@ -576,6 +574,12 @@ window.views = {
                                              </div>
                                          `;
         }).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end gap-3 mt-8 border-t border-gray-800 pt-6">
+                                    <button type="button" onclick="document.getElementById('editor-modal').remove()" class="px-4 py-2 text-gray-400 hover:text-white">Cancelar</button>
+                                    <button type="submit" class="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold shadow-lg shadow-orange-900/20">Guardar Producto</button>
                                 </div>
 
                                 <div class="flex gap-2 bg-gray-900 p-2 rounded-lg border border-gray-800">

@@ -211,14 +211,41 @@ function saveProduct(event, id) {
     event.preventDefault();
     const formData = new FormData(event.target);
 
+    // Receta: Extraer manualmente del DOM para mayor seguridad
     const recipe = [];
-    const recipeIds = formData.getAll('recipe_id[]');
-    recipeIds.forEach(rId => {
-        const qty = formData.get(`recipe_qty_${rId}`);
-        if (qty) {
-            recipe.push({ id: rId, qty: parseFloat(qty) });
+    const form = event.target;
+    // Seleccionar todas las filas visuales de la receta (.recipe-row)
+    const recipeRows = form.querySelectorAll('.recipe-row');
+
+    if (recipeRows.length > 0) {
+        recipeRows.forEach(row => {
+            const rId = row.getAttribute('data-id');
+            // Dentro de la fila, buscar el input de cantidad
+            const qtyInput = row.querySelector('input[type="number"]');
+
+            if (rId && qtyInput) {
+                const val = parseFloat(qtyInput.value);
+                if (!isNaN(val)) {
+                    recipe.push({ id: rId, qty: val });
+                }
+            }
+        });
+    }
+
+    // Safeguard: Preservar receta si el usuario no tiene permisos para verla/editarla
+    // Si no encontramos inputs en el DOM (length 0) y el usuario NO tiene permisos, mantenemos la anterior.
+    // Nota: Si el usuario TIENE permisos y borró todos los ingredientes, recipe será vacío y eso es correcto.
+    if (recipe.length === 0 && id && id !== 'undefined') {
+        const allowedIds = [0, 2, 3];
+        // Si el usuario actual NO está en la lista de permitidos (es decir, no ve el form)
+        if (!allowedIds.includes(store.currentUser.id)) {
+            const existing = store.state.products.find(p => p.id === id);
+            if (existing && existing.recipe) {
+                // Copiar la receta existente para no perderla
+                existing.recipe.forEach(r => recipe.push(r));
+            }
         }
-    });
+    }
 
     const product = {
         id: id && id !== 'undefined' ? id : 'p_' + Date.now(),
@@ -268,7 +295,8 @@ function addIngredientRow() {
     }
 
     const div = document.createElement('div');
-    div.className = 'flex gap-2 items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50 animate-in fade-in slide-in-from-bottom-2';
+    div.className = 'recipe-row flex gap-2 items-center bg-gray-800/50 p-2 rounded-lg border border-gray-700/50 animate-in fade-in slide-in-from-bottom-2';
+    div.setAttribute('data-id', ingId);
     div.innerHTML = `
         <div class="flex-1 min-w-0">
              <span class="text-gray-300 text-sm font-medium block truncate">${ingText}</span>

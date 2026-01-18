@@ -1287,7 +1287,7 @@
             renderProductEditorModal(product = null) {
                 const isEdit = !!product;
                 const p = product || { id: '', name: '', price: '', image: '', category: 'burgers' };
-                const isManager = store.currentUser && (store.currentUser.id === 2 || store.currentUser.id === 3);
+                const isManager = store.currentUser && (store.currentUser.id === 0 || store.currentUser.id === 2 || store.currentUser.id === 3);
 
                 return `
                     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" id="editor-modal">
@@ -1325,10 +1325,7 @@
                                     <p class="text-xs text-gray-500 mt-1 italic">Pega una URL o sube una imagen.</p>
                                 </div>
 
-                                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-800">
-                                    <button type="button" onclick="document.getElementById('editor-modal').remove()" class="px-4 py-2 text-gray-400 hover:text-white font-bold transition-colors">Cancelar</button>
-                                    <button type="submit" class="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold shadow-lg shadow-orange-900/20 transition-all">Guardar</button>
-                                </div>
+                                <!-- Top buttons removed, moved to bottom -->
 
                                 ${isManager && isEdit ? `
                                 <div class="border-t border-gray-800 pt-6 mt-6">
@@ -1340,7 +1337,7 @@
                                          ${(p.recipe || []).map(ing => {
                     const invItem = store.state.inventory.find(i => i.id === ing.id);
                     return `
-                                                <div class="flex gap-2 items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700/50">
+                                                <div class="recipe-row flex gap-2 items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700/50" data-id="${ing.id}">
                                                     <div class="flex-1 min-w-0">
                                                         <span class="text-gray-300 text-sm font-bold block truncate">${invItem ? invItem.name : ing.id}</span>
                                                         <span class="text-gray-500 text-[10px]">Id: ${ing.id}</span>
@@ -1363,6 +1360,12 @@
                                             <i data-lucide="plus" class="w-4 h-4"></i>
                                         </button>
                                     </div>
+                                </div>
+
+                                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-800">
+                                    <button type="button" onclick="document.getElementById('editor-modal').remove()" class="px-4 py-2 text-gray-400 hover:text-white font-bold transition-colors">Cancelar</button>
+                                    <button type="submit" class="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold shadow-lg shadow-orange-900/20 transition-all">Guardar Producto</button>
+                                </div>
                                 </div>
                                 ` : ''}
                             </form>
@@ -1993,13 +1996,31 @@
             const formData = new FormData(event.target);
 
             const recipe = [];
-            const recipeIds = formData.getAll('recipe_id[]');
-            recipeIds.forEach(rId => {
-                const qty = formData.get(`recipe_qty_${rId} `);
-                if (qty) {
-                    recipe.push({ id: rId, qty: parseFloat(qty) });
+            // Receta: Extraer manualmente del DOM para mayor seguridad
+            const recipeRows = event.target.querySelectorAll('.recipe-row');
+            if (recipeRows.length > 0) {
+                recipeRows.forEach(row => {
+                    const rId = row.getAttribute('data-id');
+                    const qtyInput = row.querySelector('input[type="number"]');
+                    if (rId && qtyInput) {
+                        const val = parseFloat(qtyInput.value);
+                        if (!isNaN(val)) {
+                            recipe.push({ id: rId, qty: val });
+                        }
+                    }
+                });
+            }
+
+            // Safeguard: Preservar receta si el formulario de ingredientes no estaba visible (por permisos)
+            if (recipe.length === 0 && id && id !== 'undefined') {
+                const allowedIds = [0, 2, 3];
+                if (!allowedIds.includes(store.currentUser.id)) {
+                    const existing = store.state.products.find(p => p.id === id);
+                    if (existing && existing.recipe) {
+                        existing.recipe.forEach(r => recipe.push(r));
+                    }
                 }
-            });
+            }
 
             const product = {
                 id: id && id !== 'undefined' ? id : 'p_' + Date.now(),
@@ -2091,7 +2112,8 @@
             }
 
             const div = document.createElement('div');
-            div.className = 'flex gap-2 items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700/50 animate-in fade-in slide-in-from-bottom-2';
+            div.className = 'recipe-row flex gap-2 items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700/50 animate-in fade-in slide-in-from-bottom-2';
+            div.setAttribute('data-id', ingId);
             div.innerHTML = `
                 <div class="flex-1 min-w-0">
                     <span class="text-gray-300 text-sm font-bold block truncate">${ingText}</span>
