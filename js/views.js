@@ -299,12 +299,12 @@ window.views = {
                     }
                                         </td>
                                         <td class="px-6 py-4 text-right">
-                                            ${store.currentUser.id === 2 ? `
+                                            ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                                                 <button onclick="window.posApp.openAdjustmentModal('${item.id}')" class="text-orange-500 hover:text-white hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-orange-500/30">
                                                     <i data-lucide="settings-2" class="w-3 h-3 inline mr-1"></i>Ajustar
                                                 </button>
                                             ` : `
-                                                <span class="text-gray-600 text-xs italic"><i data-lucide="lock" class="w-3 h-3 inline"></i> Solo Gerente</span>
+                                                <span class="text-gray-600 text-xs italic"><i data-lucide="lock" class="w-3 h-3 inline"></i> Solo Gerente/Master</span>
                                             `}
                                         </td>
                                     </tr>`;
@@ -441,7 +441,7 @@ window.views = {
                                 <button onclick="window.posApp.openProductEditor('${p.id}')" class="p-2 bg-gray-800 rounded-lg text-gray-400 hover:text-white" title="Editar">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
-                                ${store.currentUser.id === 2 ? `
+                                ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                                     <button onclick="window.posApp.deleteProduct('${p.id}')" class="p-2 bg-red-500/10 rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-colors" title="Eliminar">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
@@ -538,7 +538,7 @@ window.views = {
 
                         <div class="flex justify-between mt-8">
                             <div>
-                                ${isEdit && store.currentUser.id === 2 ? `
+                                ${isEdit && (store.currentUser.id === 2 || store.currentUser.id === 3) ? `
                                     <button type="button" onclick="window.posApp.deleteProduct('${p.id}')" class="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg font-bold border border-red-500/20 transition-colors">
                                         <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i> Eliminar
                                     </button>
@@ -551,7 +551,7 @@ window.views = {
                         </div>
                         
                         ${/* Ingredients Section - Manager Only */ ''}
-                        ${store.currentUser.id === 2 ? `
+                        ${store.currentUser.id === 2 || store.currentUser.id === 3 ? `
                             <div class="border-t border-gray-800 pt-6 mt-6">
                                 <h3 class="text-white font-bold mb-4 flex items-center gap-2">
                                     <i data-lucide="chef-hat" class="w-4 h-4 text-orange-500"></i> Receta (Ingredientes)
